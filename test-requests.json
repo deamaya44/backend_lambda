@@ -1,0 +1,30 @@
+{
+  "health_check": {
+    "description": "Test health endpoint",
+    "method": "GET",
+    "path": "/health",
+    "curl": "curl https://YOUR_LAMBDA_URL/health"
+  },
+  "get_all_users": {
+    "description": "Get all users",
+    "method": "GET",
+    "path": "/users",
+    "curl": "curl https://YOUR_LAMBDA_URL/users"
+  },
+  "create_user": {
+    "description": "Create a new user",
+    "method": "POST",
+    "path": "/users",
+    "body": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "curl": "curl -X POST https://YOUR_LAMBDA_URL/users -H 'Content-Type: application/json' -d '{\"name\":\"John Doe\",\"email\":\"john.doe@example.com\"}'"
+  },
+  "get_user_by_id": {
+    "description": "Get user by ID",
+    "method": "GET",
+    "path": "/users?id=1",
+    "curl": "curl https://YOUR_LAMBDA_URL/users?id=1"
+  }
+}

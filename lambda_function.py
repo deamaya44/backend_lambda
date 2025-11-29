@@ -56,8 +56,11 @@ def get_db_connection():
         # Obtener password desde Secrets Manager usando IAM role
         db_password = get_secret_value(DB_SECRET_ARN)
         
+        # Remover el puerto del host si viene incluido
+        db_host = DB_HOST.split(':')[0] if ':' in DB_HOST else DB_HOST
+        
         conn = psycopg2.connect(
-            host=DB_HOST,
+            host=db_host,
             database=DB_NAME,
             user=DB_USER,
             password=db_password,
