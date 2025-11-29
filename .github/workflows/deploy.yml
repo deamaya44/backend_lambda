@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
+      - dev
   workflow_dispatch:
 
 env:
-  AWS_REGION: us-east-1
-  LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
-  LAMBDA_FUNCTION_NAME_SECONDARY: ${{ secrets.LAMBDA_FUNCTION_NAME_SECONDARY }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ENVIRONMENT: ${{ github.ref_name }}
 
 jobs:
   build-and-deploy:
@@ -53,30 +54,32 @@ jobs:
 
       - name: Update Lambda function (Primary Region)
         run: |
-          echo "🚀 Updating Lambda function in us-east-1..."
+          FUNCTION_NAME="multiregion-${{ env.ENVIRONMENT }}-api"
+          echo "🚀 Updating Lambda function $FUNCTION_NAME in us-east-1..."
           aws lambda update-function-code \
-            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --function-name $FUNCTION_NAME \
             --zip-file fileb://lambda_function.zip \
             --region us-east-1
           
           echo "⏳ Waiting for function to be updated..."
           aws lambda wait function-updated \
-            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --function-name $FUNCTION_NAME \
             --region us-east-1
           
           echo "✅ Lambda updated in us-east-1"
 
       - name: Update Lambda function (Secondary Region)
         run: |
-          echo "🚀 Updating Lambda function in us-west-2..."
+          FUNCTION_NAME="multiregion-${{ env.ENVIRONMENT }}-api-2"
+          echo "🚀 Updating Lambda function $FUNCTION_NAME in us-west-2..."
           aws lambda update-function-code \
-            --function-name ${{ env.LAMBDA_FUNCTION_NAME_SECONDARY }} \
+            --function-name $FUNCTION_NAME \
             --zip-file fileb://lambda_function.zip \
             --region us-west-2
           
           echo "⏳ Waiting for function to be updated..."
           aws lambda wait function-updated \
-            --function-name ${{ env.LAMBDA_FUNCTION_NAME_SECONDARY }} \
+            --function-name $FUNCTION_NAME \
             --region us-west-2
           
           echo "✅ Lambda updated in us-west-2"
@@ -85,7 +88,7 @@ jobs:
         run: |
           echo "✅ Backend Lambda deployed successfully!"
           echo "📦 Package size: $(du -h lambda_function.zip | cut -f1)"
-          echo "🌍 Primary (us-east-1): ${{ env.LAMBDA_FUNCTION_NAME }}"
-          echo "🌍 Secondary (us-west-2): ${{ env.LAMBDA_FUNCTION_NAME_SECONDARY }}"
+          echo "🌍 Primary (us-east-1): multiregion-${{ env.ENVIRONMENT }}-api"
+          echo "🌍 Secondary (us-west-2): multiregion-${{ env.ENVIRONMENT }}-api-2"
           echo ""
           echo "Lambda functions are now running with updated code!"
