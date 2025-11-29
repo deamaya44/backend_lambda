@@ -1,0 +1,91 @@
+name: Deploy Backend Lambda
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+  LAMBDA_FUNCTION_NAME_SECONDARY: ${{ secrets.LAMBDA_FUNCTION_NAME_SECONDARY }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Build Lambda deployment package
+        run: |
+          echo "📦 Building Lambda deployment package..."
+          
+          # Create package directory
+          mkdir -p package
+          
+          # Install dependencies
+          pip install -r requirements.txt -t package/ --upgrade
+          
+          # Copy function code
+          cp lambda_function.py package/
+          
+          # Create zip file
+          cd package
+          zip -r ../lambda_function.zip . -q
+          cd ..
+          
+          echo "✅ Package built: $(du -h lambda_function.zip | cut -f1)"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Lambda function (Primary Region)
+        run: |
+          echo "🚀 Updating Lambda function in us-east-1..."
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --zip-file fileb://lambda_function.zip \
+            --region us-east-1
+          
+          echo "⏳ Waiting for function to be updated..."
+          aws lambda wait function-updated \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --region us-east-1
+          
+          echo "✅ Lambda updated in us-east-1"
+
+      - name: Update Lambda function (Secondary Region)
+        run: |
+          echo "🚀 Updating Lambda function in us-west-2..."
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME_SECONDARY }} \
+            --zip-file fileb://lambda_function.zip \
+            --region us-west-2
+          
+          echo "⏳ Waiting for function to be updated..."
+          aws lambda wait function-updated \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME_SECONDARY }} \
+            --region us-west-2
+          
+          echo "✅ Lambda updated in us-west-2"
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Backend Lambda deployed successfully!"
+          echo "📦 Package size: $(du -h lambda_function.zip | cut -f1)"
+          echo "🌍 Primary (us-east-1): ${{ env.LAMBDA_FUNCTION_NAME }}"
+          echo "🌍 Secondary (us-west-2): ${{ env.LAMBDA_FUNCTION_NAME_SECONDARY }}"
+          echo ""
+          echo "Lambda functions are now running with updated code!"
