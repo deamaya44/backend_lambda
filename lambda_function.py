@@ -65,7 +65,8 @@ def get_db_connection():
             user=DB_USER,
             password=db_password,
             port=DB_PORT,
-            connect_timeout=5
+            connect_timeout=5,
+            sslmode='require'
         )
         return conn
     except Exception as e:
